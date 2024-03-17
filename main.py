@@ -1,19 +1,21 @@
 from flask import Flask, jsonify, request
-from pymongo import MongoClient
+# from pymongo import MongoClient
 import subprocess
 app = Flask(__name__)
 import os
 import dotenv
 import json
 
-from bson import ObjectId
+# from bson import ObjectId
 
 import codeGenerator as codeGenerator
+
+import requests
 dotenv.load_dotenv()
 # Connect to MongoDB
-client = MongoClient(os.getenv('MONGO_URI'))
-db = client['buildify']
-app_code_collection = db['workflows']
+# client = MongoClient(os.getenv('MONGO_URI'))
+# db = client['buildify']
+# app_code_collection = db['workflows']
 
 
 @app.route('/')
@@ -24,12 +26,14 @@ def hello_world():
 def execute_code(unique_code):
     user_api_input = request.args.get('input')
     print(unique_code)
-    unique_code = ObjectId(unique_code)
+    # unique_code = ObjectId(unique_code)
     # mongo_id = ObjectId(unique_code)
     
     # Retrieve the Python code associated with the unique identifier from MongoDB
-    code_doc = app_code_collection.find_one({'_id': unique_code})
+    # code_doc = app_code_collection.find_one({'_id': unique_code})
 
+    code_doc = requests.get('https://micro-devhouse.vercel.app/get/'+unique_code).json()
+    print(code_doc)
     if code_doc:
         # python_code = "print('Hello, World!')"
         # with open("test.json", "r") as f:
@@ -54,7 +58,7 @@ def execute_code(unique_code):
 
             # Run the command in the specified directory
             process = subprocess.Popen(command, cwd=cwd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-            stdout, stderr = process.communicate()
+            stdout, stderr = process.communicate() 
 
             # Decode bytes to string
             output = stdout.decode('utf-8')
@@ -92,20 +96,7 @@ def test():
 
     # Return response as JSON
     return jsonify({"response": str(c)})
-@app.route('/test_add_data')
-def test_add_data():
-    code_my= '''
-`from test1 import my_llmops
-import os 
-my_llm  = my_llmops('gemini', 1)
-a = my_llm.upload_doument("test.txt")
-b = my_llm.create_embedding(doc="test", embedding_model= 'gemini')
-c = my_llm.chat_with_index(b, 'mission of microsoft?', 'gemini')
-print(c)`
 
-'''
-    app_code_collection.insert_one({'unique_code': '4', 'code': code_my})
-    return 'Data added successfully'
 
 if __name__ == '__main__':
-    app.run(debug=True, port=5001 ,host='0.0.0.0')
+    app.run(debug=True, host='0.0.0.0')
